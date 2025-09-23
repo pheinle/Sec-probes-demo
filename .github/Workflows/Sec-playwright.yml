@@ -1,0 +1,62 @@
+name: sec-probes-playwright
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  run-probes:
+    runs-on: ubuntu-latest
+
+    services:
+      juice:
+        image: bkimminich/juice-shop:latest
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "curl -fsS http://localhost:3000 || exit 1"
+          --health-interval 5s --health-timeout 2s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Wait for Juice Shop
+        run: |
+          for i in {1..30}; do
+            if curl -sSf http://localhost:3000 >/dev/null; then echo OK; break; fi
+            sleep 2
+          done
+
+      - name: Run Playwright security probes
+        env:
+          TARGET_URL: http://localhost:3000
+        run: npm run sec:probes
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sec-artifacts
+          path: artifacts/**
+
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: artifacts/findings.sarif.json
