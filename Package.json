@@ -1,0 +1,11 @@
+{
+  "name": "sec-probes-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "sec:probes": "node ci/sec-probes.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
