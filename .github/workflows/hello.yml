@@ -1,0 +1,13 @@
+name: hello-world-test
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say Hello
+        run: echo "✅ Hello from GitHub Actions! Your workflows are working."
