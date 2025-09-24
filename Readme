@@ -1,3 +1,0 @@
-# sec-probes-demo
-Playwright security probes running in GitHub Actions against OWASP Juice Shop.
-Artifacts: screenshots, HAR, SARIF uploaded on each run.
