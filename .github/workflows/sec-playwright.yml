@@ -1,0 +1,59 @@
+name: playwright-juice-shop-smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    services:
+      juice:
+        image: bkimminich/juice-shop:latest
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "curl -fsS http://localhost:3000 || exit 1"
+          --health-interval 5s --health-timeout 2s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install @playwright/test
+          npx playwright install --with-deps
+
+      - name: Wait for Juice Shop
+        run: |
+          for i in {1..30}; do
+            if curl -sSf http://localhost:3000 >/dev/null; then echo "Juice Shop is up!"; break; fi
+            sleep 2
+          done
+
+      - name: Run Playwright script
+        run: |
+          node - <<'EOF'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await (await browser.newContext()).newPage();
+            await page.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+            const title = await page.title();
+            console.log("📄 Page title:", title);
+            await page.screenshot({ path: 'home.png', fullPage: true });
+            await browser.close();
+          })();
+          EOF
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: juice-shop-home
+          path: home.png
